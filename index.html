@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Budget Tracker</title>
+
+  <!-- ===================================================
+       PART 2: CSS (the paint and decoration)
+       This section controls how everything LOOKS:
+       colors, sizes, spacing, fonts.
+       =================================================== -->
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --card: #ffffff;
+      --text: #1f2933;
+      --muted: #6b7785;
+      --accent: #1a7f5a;
+      --needs: #2f6fdb;
+      --wants: #e08a1e;
+      --savings: #1a7f5a;
+      --danger: #c0392b;
+      --border: #dde3e9;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12161b;
+        --card: #1c2229;
+        --text: #e6ebf0;
+        --muted: #95a1ad;
+        --border: #2d3640;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main { max-width: 720px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { margin: 0 0 4px; font-size: 1.8rem; }
+    .subtitle { color: var(--muted); margin: 0 0 24px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 1.1rem; }
+    label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+    input, select, button {
+      font: inherit;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--text);
+      width: 100%;
+    }
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    button:hover { opacity: 0.9; }
+    .row { display: grid; gap: 12px; grid-template-columns: 2fr 1fr 1fr; align-items: end; }
+    .row + .row { margin-top: 12px; }
+    @media (max-width: 560px) { .row { grid-template-columns: 1fr; } }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center; }
+    @media (max-width: 560px) { .stats { grid-template-columns: 1fr; } }
+    .stat-value { font-size: 1.5rem; font-weight: 700; }
+    .stat-label { font-size: 0.8rem; color: var(--muted); }
+    .negative { color: var(--danger); }
+    .bucket { margin-bottom: 14px; }
+    .bucket-top { display: flex; justify-content: space-between; font-size: 0.9rem; margin-bottom: 4px; }
+    .bar { height: 10px; background: var(--border); border-radius: 99px; overflow: hidden; position: relative; }
+    .bar-fill { height: 100%; border-radius: 99px; transition: width 0.3s; }
+    .hint { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+    ul { list-style: none; margin: 0; padding: 0; }
+    li {
+      display: flex; justify-content: space-between; align-items: center; gap: 8px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    li:last-child { border-bottom: none; }
+    .tag { font-size: 0.75rem; padding: 2px 8px; border-radius: 99px; color: #fff; margin-left: 6px; }
+    .delete {
+      width: auto; background: none; color: var(--danger);
+      padding: 4px 8px; font-size: 0.85rem;
+    }
+    .empty { color: var(--muted); font-style: italic; }
+  </style>
+</head>
+
+<body>
+  <!-- ===================================================
+       PART 1: HTML (the frame of the house)
+       This section is the STRUCTURE: headings, boxes,
+       input fields, buttons. What exists on the page.
+       =================================================== -->
+  <main>
+    <h1>My Budget Tracker</h1>
+    <p class="subtitle">Track your spending with the 50/30/20 rule.</p>
+
+    <!-- Monthly income -->
+    <section class="card">
+      <h2>1. Monthly income (after taxes)</h2>
+      <input type="number" id="income" placeholder="e.g. 2500" min="0" step="0.01">
+    </section>
+
+    <!-- Add an expense -->
+    <section class="card">
+      <h2>2. Add an expense</h2>
+      <div class="row">
+        <div>
+          <label for="desc">What was it?</label>
+          <input type="text" id="desc" placeholder="e.g. Rent, groceries, movies">
+        </div>
+        <div>
+          <label for="amount">Amount ($)</label>
+          <input type="number" id="amount" placeholder="0.00" min="0" step="0.01">
+        </div>
+        <div>
+          <label for="category">Type</label>
+          <select id="category">
+            <option value="needs">Need</option>
+            <option value="wants">Want</option>
+            <option value="savings">Savings</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="grid-template-columns: 1fr;">
+        <button id="addBtn">Add expense</button>
+      </div>
+    </section>
+
+    <!-- Summary numbers -->
+    <section class="card">
+      <h2>3. Summary</h2>
+      <div class="stats">
+        <div><div class="stat-value" id="totalIncome">$0</div><div class="stat-label">Income</div></div>
+        <div><div class="stat-value" id="totalSpent">$0</div><div class="stat-label">Spent + saved</div></div>
+        <div><div class="stat-value" id="leftover">$0</div><div class="stat-label">Left to assign</div></div>
+      </div>
+    </section>
+
+    <!-- 50/30/20 breakdown -->
+    <section class="card">
+      <h2>4. How you compare to 50/30/20</h2>
+      <div id="buckets"></div>
+    </section>
+
+    <!-- List of expenses -->
+    <section class="card">
+      <h2>5. Your expenses</h2>
+      <ul id="list"></ul>
+    </section>
+  </main>
+
+  <!-- ===================================================
+       PART 3: JavaScript (the electricity and plumbing)
+       This section makes things HAPPEN: adding expenses,
+       doing the math, updating the page, remembering data.
+       =================================================== -->
+  <script>
+    // The 50/30/20 rule: 50% needs, 30% wants, 20% savings
+    const TARGETS = {
+      needs:   { label: "Needs",   target: 50, color: "var(--needs)" },
+      wants:   { label: "Wants",   target: 30, color: "var(--wants)" },
+      savings: { label: "Savings", target: 20, color: "var(--savings)" }
+    };
+
+    // Load saved data from the browser (if any), or start fresh
+    let data = { income: 0, expenses: [] };
+    try {
+      const saved = localStorage.getItem("budgetData");
+      if (saved) data = JSON.parse(saved);
+    } catch (e) { /* storage unavailable: just start fresh */ }
+
+    // Save data to the browser so it's still there next visit
+    function save() {
+      try { localStorage.setItem("budgetData", JSON.stringify(data)); } catch (e) {}
+    }
+
+    // Turn a number like 1234.5 into "$1,234.50"
+    function money(n) {
+      return n.toLocaleString("en-US", { style: "currency", currency: "USD" });
+    }
+
+    // Redraw everything on the page using the current data
+    function render() {
+      const incomeBox = document.getElementById("income");
+      if (document.activeElement !== incomeBox) {
+        incomeBox.value = data.income || "";
+      }
+
+      // Add up spending in each category
+      const totals = { needs: 0, wants: 0, savings: 0 };
+      data.expenses.forEach(e => totals[e.category] += e.amount);
+      const spent = totals.needs + totals.wants + totals.savings;
+      const left = data.income - spent;
+
+      // Summary numbers
+      document.getElementById("totalIncome").textContent = money(data.income);
+      document.getElementById("totalSpent").textContent = money(spent);
+      const leftEl = document.getElementById("leftover");
+      leftEl.textContent = money(left);
+      leftEl.className = "stat-value" + (left < 0 ? " negative" : "");
+
+      // 50/30/20 bars
+      let html = "";
+      for (const key in TARGETS) {
+        const t = TARGETS[key];
+        const pct = data.income > 0 ? (totals[key] / data.income) * 100 : 0;
+        const goal = data.income * t.target / 100;
+        html += `
+          <div class="bucket">
+            <div class="bucket-top">
+              <strong>${t.label}</strong>
+              <span>${money(totals[key])} of ${money(goal)} (${pct.toFixed(0)}% / goal ${t.target}%)</span>
+            </div>
+            <div class="bar">
+              <div class="bar-fill" style="width:${Math.min(pct / t.target * 100, 100)}%; background:${pct > t.target && key !== "savings" ? "var(--danger)" : t.color}"></div>
+            </div>
+          </div>`;
+      }
+      if (data.income <= 0) html += `<p class="hint">Enter your income above to see your breakdown.</p>`;
+      document.getElementById("buckets").innerHTML = html;
+
+      // Expense list
+      const list = document.getElementById("list");
+      if (data.expenses.length === 0) {
+        list.innerHTML = `<li class="empty">No expenses yet. Add one above!</li>`;
+      } else {
+        list.innerHTML = data.expenses.map((e, i) => `
+          <li>
+            <span>${escapeHtml(e.desc)}<span class="tag" style="background:${TARGETS[e.category].color}">${TARGETS[e.category].label}</span></span>
+            <span>${money(e.amount)} <button class="delete" onclick="removeExpense(${i})">Remove</button></span>
+          </li>`).join("");
+      }
+    }
+
+    // Keep typed text from being treated as code
+    function escapeHtml(s) {
+      return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
+    // When income changes, save it and redraw
+    document.getElementById("income").addEventListener("input", e => {
+      data.income = parseFloat(e.target.value) || 0;
+      save();
+      render();
+    });
+
+    // When "Add expense" is clicked
+    document.getElementById("addBtn").addEventListener("click", () => {
+      const desc = document.getElementById("desc").value.trim();
+      const amount = parseFloat(document.getElementById("amount").value);
+      const category = document.getElementById("category").value;
+      if (!desc || !(amount > 0)) {
+        alert("Please enter a description and an amount greater than 0.");
+        return;
+      }
+      data.expenses.push({ desc, amount, category });
+      document.getElementById("desc").value = "";
+      document.getElementById("amount").value = "";
+      save();
+      render();
+    });
+
+    // Remove an expense from the list
+    function removeExpense(i) {
+      data.expenses.splice(i, 1);
+      save();
+      render();
+    }
+
+    // Draw the page for the first time
+    render();
+  </script>
+</body>
+</html>
